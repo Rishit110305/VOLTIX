@@ -89,7 +89,7 @@ export default function LiveAgentConsole() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const consoleRef = useRef<HTMLDivElement>(null);
 
-  const backendUrl = "https://voltix-nliu.onrender.com";
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5005";
 
   // Connect to socket for real-time updates
   useEffect(() => {
