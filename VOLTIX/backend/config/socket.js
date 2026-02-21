@@ -12,7 +12,22 @@ import dataIngestionHandler from "../socket/dataIngestionHandler.js";
 export const initSocket = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || "http://localhost:3000",
+      origin: function (origin, callback) {
+        // Allow no-origin requests (server-to-server, Postman, etc.)
+        if (!origin) return callback(null, true);
+
+        const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
+        const allowedList = [clientUrl, "http://localhost:3000", "http://localhost:3001", "http://localhost:4000", "http://localhost:8000"];
+
+        // Allow if in list, or is a Vercel domain
+        if (allowedList.includes(origin) || origin.endsWith('.vercel.app') || origin.endsWith('.vercel.sh')) {
+          callback(null, true);
+        } else if (process.env.NODE_ENV === 'development') {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       credentials: true,
       methods: ["GET", "POST"],
     },

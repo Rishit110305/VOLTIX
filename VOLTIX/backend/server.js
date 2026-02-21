@@ -41,6 +41,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:4000",
+  "http://localhost:8000",
   process.env.CLIENT_URL,
   // Add your Vercel URLs here
 ].filter(Boolean);
@@ -51,14 +52,19 @@ if (process.env.CLIENT_URL && process.env.CLIENT_URL.includes(',')) {
   allowedOrigins.push(...urls);
 }
 
+// Helper to check if origin is a Vercel preview/production domain
+const isVercelOrigin = (origin) => {
+  return origin && (origin.endsWith('.vercel.app') || origin.endsWith('.vercel.sh'));
+};
+
 app.use(
   cors({
     origin: function (origin, callback) {
       // Allow requests with no origin (mobile apps, Postman, etc.)
       if (!origin) return callback(null, true);
 
-      // Check if origin is in allowed list
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      // Check if origin is in allowed list or is a Vercel domain
+      if (allowedOrigins.indexOf(origin) !== -1 || isVercelOrigin(origin)) {
         callback(null, true);
       } else {
         // In development, allow all origins

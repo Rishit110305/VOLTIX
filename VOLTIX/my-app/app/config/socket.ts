@@ -5,7 +5,7 @@ let socket: Socket | null = null;
 export const connectSocket = (): Socket => {
   if (!socket) {
     // Connect DIRECTLY to backend (port 5005) in dev to bypass Next.js internal proxy ECONNREFUSED / socket drop XHR errors
-    const url = process.env.NODE_ENV === "development" ? "http://localhost:5005" : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000");
+    const url = process.env.NODE_ENV === "development" ? "http://localhost:5005" : (process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "");
     socket = io(url, {
       withCredentials: true,
       autoConnect: true,

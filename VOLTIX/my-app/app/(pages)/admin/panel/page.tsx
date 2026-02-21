@@ -721,12 +721,12 @@ export default function AdminPanelPage() {
                                 <span className="text-xs font-bold text-neutral-300 tracking-widest uppercase">Live Hardware Simulator Logs (OCPP 1.6J)</span>
                             </div>
                         </div>
-                        <div className="text-[10px] text-green-400 font-mono tracking-wider bg-green-500/10 px-2 py-1 rounded">wss://localhost:5005/ocpp/{selectedStationId}</div>
+                        <div className="text-[10px] text-green-400 font-mono tracking-wider bg-green-500/10 px-2 py-1 rounded">wss://{typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:{process.env.NEXT_PUBLIC_BACKEND_URL ? new URL(process.env.NEXT_PUBLIC_BACKEND_URL).port || '443' : '5005'}/ocpp/{selectedStationId}</div>
                     </div>
                     {/* Console body */}
                     <div className="p-5 h-[280px] overflow-y-auto font-mono text-[11.5px] flex flex-col gap-2 relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                         <div className="text-neutral-500 mb-2">
-                            {'>'} Waiting for edge hardware websocket connection on port 5005...
+                            {'>'} Waiting for edge hardware websocket connection...
                         </div>
                         {ocppLogs.map((log, i) => (
                             <div key={i} className="flex gap-4 border-b border-white/[0.02] pb-2 last:border-0 hover:bg-white/[0.02] transition-colors rounded px-2 -mx-2">

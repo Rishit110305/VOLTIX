@@ -61,7 +61,7 @@ export function DashboardSidebar() {
 
       if (token) {
         const apiUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          process.env.NEXT_PUBLIC_API_URL || "";
         await fetch(`${apiUrl}/api/auth/logout`, {
           method: "POST",
           headers: {

@@ -8,7 +8,7 @@ export default function TestAPIPage() {
   const [results, setResults] = useState<any>({});
   const [loading, setLoading] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
 
   const tests = [
     {
@@ -174,8 +174,8 @@ export default function TestAPIPage() {
             <Button onClick={runAllTests} disabled={loading}>
               {loading ? 'Running Tests...' : 'Run All Tests'}
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setResults({})}
             >
               Clear Results
@@ -188,8 +188,8 @@ export default function TestAPIPage() {
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-base">{test.name}</CardTitle>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => runTest(test)}
                       disabled={loading}
@@ -211,8 +211,8 @@ export default function TestAPIPage() {
                       </div>
                       <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-64">
                         {JSON.stringify(
-                          results[test.name].success 
-                            ? results[test.name].result 
+                          results[test.name].success
+                            ? results[test.name].result
                             : results[test.name].error,
                           null,
                           2

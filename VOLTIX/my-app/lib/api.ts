@@ -1,6 +1,6 @@
 import * as authService from "../app/services/authService";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 // Export types
 export type SignupData = {

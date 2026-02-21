@@ -303,7 +303,7 @@ export function HomeContent() {
     // FIX 2: Added proper error catching and response ok checks
     const fetchStations = async () => {
       try {
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5005"}/api/stations`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ""}/api/stations`;
         const response = await fetch(apiUrl);
 
         if (!response.ok) {
