@@ -11,12 +11,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Proxy API calls through Next.js to avoid Chrome blocking port 6000
+  // Proxy API calls through Next.js to avoid Chrome blocking port 5005
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6000';
+    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005';
     return [
       {
         source: '/api/:path*',

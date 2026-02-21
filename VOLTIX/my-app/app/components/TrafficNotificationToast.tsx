@@ -179,18 +179,29 @@ export default function TrafficNotificationToast() {
   };
 
   return (
-    <div className="fixed top-20 right-4 z-50 space-y-3 max-w-md pointer-events-none">
-      <AnimatePresence>
-        {notifications.map((notification) => {
+    <div className="fixed top-24 right-6 z-50 w-[350px] sm:w-[380px] h-0 pointer-events-none">
+      <AnimatePresence mode="popLayout">
+        {notifications.map((notification, index) => {
           const Icon = notification.icon;
+          // 0 is the newest notification (last in the array)
+          const reverseIndex = notifications.length - 1 - index;
 
           return (
             <motion.div
+              layout
               key={notification.id}
-              initial={{ opacity: 0, x: 100, scale: 0.8 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 100, scale: 0.8 }}
-              className={`bg-gradient-to-r ${notification.color} text-white rounded-2xl shadow-2xl p-4 backdrop-blur-sm pointer-events-auto`}
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{
+                opacity: reverseIndex > 2 ? 0 : 1 - reverseIndex * 0.15,
+                y: reverseIndex * 16,
+                scale: 1 - reverseIndex * 0.05,
+                zIndex: notifications.length - reverseIndex,
+              }}
+              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+              className={`absolute top-0 right-0 w-full bg-gradient-to-r ${notification.color} text-white rounded-2xl shadow-2xl p-4 backdrop-blur-sm origin-top`}
+              style={{
+                pointerEvents: reverseIndex === 0 ? "auto" : "none",
+              }}
             >
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">

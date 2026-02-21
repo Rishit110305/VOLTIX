@@ -53,9 +53,13 @@ class DecisionLogger {
         timestamp: decisionData.timestamp || new Date(),
         stationId: decisionData.stationId,
         agent: decisionData.agent,
-        action: decisionData.action,
+        action: decisionData.action || "system_event",
         triggerEvent: decisionData.triggerEvent || "system_alert",
-        context: decisionData.context || {},
+        context: {
+          inputData: decisionData.context?.inputData || decisionData.context || { trigger: decisionData.triggerEvent },
+          environmentalFactors: decisionData.context?.environmentalFactors || {},
+          stationContext: decisionData.context?.stationContext || {}
+        },
         mlMetrics: decisionData.mlMetrics || {
           confidenceScore: 0.7,
           executionTime: 0,
@@ -92,7 +96,7 @@ class DecisionLogger {
           logEntry.mlMetrics?.confidenceScore || 0.7,
           5 // autonomy level
         );
-        
+
         if (auditResult.success) {
           blockchainHash = auditResult.hash;
           logEntry.blockchainHash = blockchainHash;

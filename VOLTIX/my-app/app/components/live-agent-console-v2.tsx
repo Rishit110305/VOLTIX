@@ -24,7 +24,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { io, Socket } from "socket.io-client";
+import { connectSocket } from "@/app/config/socket";
+import type { Socket } from "socket.io-client";
 
 interface AgentActivity {
   step: number;
@@ -92,45 +93,41 @@ export default function LiveAgentConsole() {
 
   // Connect to socket for real-time updates
   useEffect(() => {
-    const newSocket = io(backendUrl, {
-      transports: ["websocket", "polling"],
-      withCredentials: true,
-    });
+    const newSocket = connectSocket();
 
-    newSocket.on("connect", () => {
-      console.log("Connected to agent console socket");
-    });
-
-    newSocket.on("agent_activity", (activity: AgentActivity) => {
-      setActivities((prev) => [...prev, activity]);
-    });
-
-    newSocket.on("notification", (notification: Notification) => {
-      setNotifications((prev) => [notification, ...prev].slice(0, 10));
-    });
-
-    newSocket.on("driver_notification", (notification: any) => {
+    const handleConnect = () => console.log("Connected to agent console single socket");
+    const handleActivity = (activity: AgentActivity) => setActivities((prev) => [...prev, activity]);
+    const handleNotification = (notif: Notification) => setNotifications((prev) => [notif, ...prev].slice(0, 10));
+    const handleDriverNotification = (notif: any) => {
       setNotifications((prev) =>
         [
           {
             type: "INCENTIVE",
-            title: notification.title,
-            message: `${notification.offer?.discount} - ${notification.offer?.timeSaved}`,
+            title: notif.title,
+            message: `${notif.offer?.discount} - ${notif.offer?.timeSaved}`,
             agentType: "traffic",
             priority: "high",
-            timestamp: notification.timestamp,
+            timestamp: notif.timestamp,
           },
           ...prev,
         ].slice(0, 10),
       );
-    });
+    };
 
-    setSocket(newSocket);
+    newSocket.on("connect", handleConnect);
+    newSocket.on("agent_activity", handleActivity);
+    newSocket.on("notification", handleNotification);
+    newSocket.on("driver_notification", handleDriverNotification);
+
+    setSocket(newSocket as any);
 
     return () => {
-      newSocket.close();
+      newSocket.off("connect", handleConnect);
+      newSocket.off("agent_activity", handleActivity);
+      newSocket.off("notification", handleNotification);
+      newSocket.off("driver_notification", handleDriverNotification);
     };
-  }, [backendUrl]);
+  }, []);
 
   // Auto-scroll console
   useEffect(() => {
@@ -180,7 +177,7 @@ export default function LiveAgentConsole() {
 
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
@@ -196,14 +193,14 @@ export default function LiveAgentConsole() {
 
       const result = await response.json();
       console.log("✅ Demo result:", result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Demo error:", error);
       console.error("  Error details:", {
         message: error.message,
         name: error.name,
         stack: error.stack
       });
-      
+
       setNotifications((prev) => [
         {
           type: "ERROR",
@@ -479,7 +476,7 @@ export default function LiveAgentConsole() {
                                   (activity.status === "analyzing" ||
                                     activity.status === "executing" ||
                                     activity.status === "healing") &&
-                                    "animate-spin",
+                                  "animate-spin",
                                 )}
                               />
                               {activity.action}

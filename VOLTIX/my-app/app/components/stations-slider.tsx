@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { 
-  MapPin, 
-  Zap, 
-  Clock, 
-  Battery, 
-  Users, 
+import {
+  MapPin,
+  Zap,
+  Clock,
+  Battery,
+  Users,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
@@ -24,7 +24,6 @@ import {
   Gauge,
   Calendar,
   Building,
-  Highway,
   ShoppingBag,
   Briefcase
 } from "lucide-react";
@@ -61,10 +60,10 @@ interface StationsSliderProps {
   className?: string;
 }
 
-export default function StationsSlider({ 
-  onStationSelect, 
-  selectedStation, 
-  className = "" 
+export default function StationsSlider({
+  onStationSelect,
+  selectedStation,
+  className = ""
 }: StationsSliderProps) {
   const [stations, setStations] = useState<Station[]>([]);
   const [filteredStations, setFilteredStations] = useState<Station[]>([]);
@@ -234,7 +233,7 @@ export default function StationsSlider({
     let filtered = stations;
 
     if (searchTerm) {
-      filtered = filtered.filter(station => 
+      filtered = filtered.filter(station =>
         station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         station.station_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         station.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -290,7 +289,7 @@ export default function StationsSlider({
 
   const getLocationIcons = (station: Station) => {
     const icons = [];
-    if (station.is_highway) icons.push(<Highway key="highway" className="h-3 w-3" />);
+    if (station.is_highway) icons.push(<Route key="highway" className="h-3 w-3" />);
     if (station.is_mall) icons.push(<ShoppingBag key="mall" className="h-3 w-3" />);
     if (station.is_office) icons.push(<Briefcase key="office" className="h-3 w-3" />);
     return icons;
@@ -306,13 +305,13 @@ export default function StationsSlider({
 
   // Navigation functions
   const nextSlide = () => {
-    setCurrentIndex((prev) => 
+    setCurrentIndex((prev) =>
       prev + 3 >= filteredStations.length ? 0 : prev + 3
     );
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => 
+    setCurrentIndex((prev) =>
       prev - 3 < 0 ? Math.max(0, filteredStations.length - 3) : prev - 3
     );
   };
@@ -345,7 +344,7 @@ export default function StationsSlider({
             Real-time monitoring of {stations.length} stations across India
           </p>
         </div>
-        
+
         <Button
           variant="outline"
           size="sm"
@@ -381,7 +380,7 @@ export default function StationsSlider({
                 />
               </div>
             </div>
-            
+
             <Select value={filterCity} onValueChange={setFilterCity}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="All Cities" />
@@ -469,13 +468,12 @@ export default function StationsSlider({
           ) : (
             <div ref={sliderRef} className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {visibleStations.map((station) => (
-                <Card 
-                  key={station.station_id} 
-                  className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                    selectedStation?.station_id === station.station_id 
-                      ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                <Card
+                  key={station.station_id}
+                  className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${selectedStation?.station_id === station.station_id
+                      ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                  }`}
+                    }`}
                   onClick={() => onStationSelect?.(station)}
                 >
                   <CardHeader className="pb-3">
@@ -495,7 +493,7 @@ export default function StationsSlider({
                           </div>
                         </CardDescription>
                       </div>
-                      
+
                       <Badge className={getHealthColor(station.health_status)}>
                         {getHealthIcon(station.health_status)}
                         <span className="ml-1 capitalize">{station.health_status}</span>
@@ -515,7 +513,7 @@ export default function StationsSlider({
                         </div>
                         <div className="text-xs text-gray-600 dark:text-gray-400">Queue Length</div>
                       </div>
-                      
+
                       <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <div className="flex items-center justify-center gap-1 mb-1">
                           <Zap className="h-4 w-4 text-green-600" />
@@ -538,8 +536,8 @@ export default function StationsSlider({
                           {station.battery_inventory}/{station.max_inventory}
                         </span>
                       </div>
-                      <Progress 
-                        value={(station.battery_inventory / station.max_inventory) * 100} 
+                      <Progress
+                        value={(station.battery_inventory / station.max_inventory) * 100}
                         className="h-2"
                       />
                     </div>
@@ -567,9 +565,9 @@ export default function StationsSlider({
 
                     {/* Action Buttons */}
                     <div className="flex gap-2 pt-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="flex-1"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -580,9 +578,9 @@ export default function StationsSlider({
                         <Navigation className="h-3 w-3 mr-1" />
                         Navigate
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="flex-1"
                         onClick={(e) => {
                           e.stopPropagation();

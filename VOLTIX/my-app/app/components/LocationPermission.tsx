@@ -32,7 +32,7 @@ export default function LocationPermission({
           coordinates: [location.coordinates.longitude, location.coordinates.latitude],
           address: location.address
         }
-      }).then(() => {
+      } as any).then(() => {
         onLocationGranted?.(location);
       });
     }
@@ -161,7 +161,7 @@ export default function LocationPermission({
 
         {/* Privacy Note */}
         <p className="text-xs text-gray-500 mt-6 leading-relaxed">
-          Your location data is encrypted and only used to enhance your charging experience. 
+          Your location data is encrypted and only used to enhance your charging experience.
           You can change this setting anytime in your profile.
         </p>
       </div>

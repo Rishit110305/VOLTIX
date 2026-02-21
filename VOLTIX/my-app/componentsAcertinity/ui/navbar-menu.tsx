@@ -87,15 +87,6 @@ export const Menu = ({
       {/* Right: extras + auth */}
       <div className="flex items-center gap-4">
         {rightContent}
-        <Link
-          href="/login"
-          className="text-sm text-black dark:text-white hover:opacity-90"
-        >
-          Sign In
-        </Link>
-        <Link href="/SignUp" className={buttonVariants({ variant: "outline" })}>
-          Sign Up
-        </Link>
       </div>
     </nav>
   );

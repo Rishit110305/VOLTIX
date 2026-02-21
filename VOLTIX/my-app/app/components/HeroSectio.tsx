@@ -4,8 +4,11 @@ import { NavbarDemo } from "./Navbar";
 import Image from "next/image";
 import { ArrowRight, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "../hooks/useAuth";
 
 const HeroSection = () => {
+  const { isAuthenticated, logout } = useAuth();
+
   return (
     <section className="relative w-full h-screen overflow-hidden bg-neutral-900">
       {/* 1. Navbar: Absolute Position at the TOP (Not Center) */}
@@ -104,14 +107,33 @@ const HeroSection = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.1 }}
           >
-            <a
-              href="/SignUp"
-              className="group inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-black transition-transform hover:scale-105"
-              style={{ backgroundColor: "#39FF14" }}
-            >
-              Get Started
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </a>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-3">
+                <a
+                  href="/dashboard"
+                  className="group inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-black transition-transform hover:scale-105"
+                  style={{ backgroundColor: "#39FF14" }}
+                >
+                  Dashboard
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </a>
+                <button
+                  onClick={logout}
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <a
+                href="/SignUp"
+                className="group inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-black transition-transform hover:scale-105"
+                style={{ backgroundColor: "#39FF14" }}
+              >
+                Get Started
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </a>
+            )}
 
             <div className="flex items-center gap-3">
               {/* Social proof avatars */}

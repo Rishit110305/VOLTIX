@@ -4,10 +4,10 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import { Progress } from "@/components/ui/progress";
 import { Gauge } from "@/components/ui/gauge";
-import { 
-  Activity, 
-  Brain, 
-  Shield, 
+import {
+  Activity,
+  Brain,
+  Shield,
   Gauge as GaugeIcon,
   TrendingUp,
   Zap,
@@ -73,14 +73,14 @@ const createParticleElement = (x: number, y: number, color: string): HTMLDivElem
   return el;
 };
 
-const AnimatedStatsCard: React.FC<AnimatedStatsCardProps> = ({ 
-  card, 
-  index, 
-  disableAnimations = false 
+const AnimatedStatsCard: React.FC<AnimatedStatsCardProps> = ({
+  card,
+  index,
+  disableAnimations = false
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const particlesRef = useRef<HTMLDivElement[]>([]);
-  const timeoutsRef = useRef<number[]>([]);
+  const timeoutsRef = useRef<any[]>([]);
   const isHoveredRef = useRef(false);
   const progressRef = useRef<HTMLDivElement>(null);
 
@@ -106,7 +106,7 @@ const AnimatedStatsCard: React.FC<AnimatedStatsCardProps> = ({
     if (!cardRef.current || !isHoveredRef.current || disableAnimations) return;
 
     const rect = cardRef.current.getBoundingClientRect();
-    
+
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const timeoutId = setTimeout(() => {
         if (!isHoveredRef.current || !cardRef.current) return;
@@ -114,12 +114,12 @@ const AnimatedStatsCard: React.FC<AnimatedStatsCardProps> = ({
         const x = Math.random() * rect.width;
         const y = Math.random() * rect.height;
         const particle = createParticleElement(x, y, card.glowColor);
-        
+
         cardRef.current.appendChild(particle);
         particlesRef.current.push(particle);
 
-        gsap.fromTo(particle, 
-          { scale: 0, opacity: 0 }, 
+        gsap.fromTo(particle,
+          { scale: 0, opacity: 0 },
           { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.7)' }
         );
 
@@ -149,11 +149,11 @@ const AnimatedStatsCard: React.FC<AnimatedStatsCardProps> = ({
   // Animate progress bar on mount
   useEffect(() => {
     if (card.progress !== undefined && progressRef.current && !disableAnimations) {
-      gsap.fromTo(progressRef.current, 
+      gsap.fromTo(progressRef.current,
         { width: '0%' },
-        { 
-          width: `${card.progress}%`, 
-          duration: 1.5, 
+        {
+          width: `${card.progress}%`,
+          duration: 1.5,
           ease: 'power2.out',
           delay: index * 0.2
         }
@@ -166,13 +166,13 @@ const AnimatedStatsCard: React.FC<AnimatedStatsCardProps> = ({
     if (!cardRef.current || disableAnimations) return;
 
     gsap.fromTo(cardRef.current,
-      { 
-        opacity: 0, 
+      {
+        opacity: 0,
         y: 30,
         scale: 0.9
       },
-      { 
-        opacity: 1, 
+      {
+        opacity: 1,
         y: 0,
         scale: 1,
         duration: 0.6,
@@ -265,43 +265,41 @@ const AnimatedStatsCard: React.FC<AnimatedStatsCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className={`decision-stats-card relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm transition-all duration-300 cursor-pointer ${
-        card.useGauge ? 'p-6' : 'p-6'
-      }`}
+      className={`decision-stats-card relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm transition-all duration-300 cursor-pointer ${card.useGauge ? 'p-6' : 'p-6'
+        }`}
       style={{
         '--mouse-x': '50%',
         '--mouse-y': '50%'
       } as React.CSSProperties}
     >
       {/* Subtle background gradient */}
-      <div 
+      <div
         className="absolute inset-0 opacity-5"
         style={{
           background: `linear-gradient(135deg, ${card.color} 0%, transparent 100%)`
         }}
       />
-      
+
       {/* Content */}
       <div className="relative z-10">
         {card.useGauge ? (
           // Gauge Layout
           <div className="flex flex-col items-center space-y-4">
             <div className="flex items-center justify-between w-full">
-              <div 
+              <div
                 className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
-                style={{ 
+                style={{
                   color: card.color
                 }}
               >
                 {card.icon}
               </div>
-              
+
               {card.trend && (
-                <div className={`flex items-center gap-1 text-sm ${
-                  card.trend === 'up' ? 'text-green-500' : 
-                  card.trend === 'down' ? 'text-red-500' : 
-                  'text-gray-500'
-                }`}>
+                <div className={`flex items-center gap-1 text-sm ${card.trend === 'up' ? 'text-green-500' :
+                    card.trend === 'down' ? 'text-red-500' :
+                      'text-gray-500'
+                  }`}>
                   <TrendingUp className={`h-4 w-4 ${card.trend === 'down' ? 'rotate-180' : ''}`} />
                   {card.trendValue}
                 </div>
@@ -328,21 +326,20 @@ const AnimatedStatsCard: React.FC<AnimatedStatsCardProps> = ({
           // Standard Layout
           <>
             <div className="flex items-center justify-between mb-4">
-              <div 
+              <div
                 className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800"
-                style={{ 
+                style={{
                   color: card.color
                 }}
               >
                 {card.icon}
               </div>
-              
+
               {card.trend && (
-                <div className={`flex items-center gap-1 text-sm ${
-                  card.trend === 'up' ? 'text-green-500' : 
-                  card.trend === 'down' ? 'text-red-500' : 
-                  'text-gray-500'
-                }`}>
+                <div className={`flex items-center gap-1 text-sm ${card.trend === 'up' ? 'text-green-500' :
+                    card.trend === 'down' ? 'text-red-500' :
+                      'text-gray-500'
+                  }`}>
                   <TrendingUp className={`h-4 w-4 ${card.trend === 'down' ? 'rotate-180' : ''}`} />
                   {card.trendValue}
                 </div>
@@ -356,7 +353,7 @@ const AnimatedStatsCard: React.FC<AnimatedStatsCardProps> = ({
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 {card.subtitle}
               </div>
-              
+
               {card.progress !== undefined && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
@@ -367,7 +364,7 @@ const AnimatedStatsCard: React.FC<AnimatedStatsCardProps> = ({
                     <div
                       ref={progressRef}
                       className="h-full rounded-full transition-all duration-300"
-                      style={{ 
+                      style={{
                         backgroundColor: card.color,
                         boxShadow: `0 0 8px rgba(${card.glowColor}, 0.4)`
                       }}
@@ -390,10 +387,10 @@ interface DecisionStatsCardsProps {
   disableAnimations?: boolean;
 }
 
-export const DecisionStatsCards: React.FC<DecisionStatsCardsProps> = ({ 
-  stats, 
-  loading = false, 
-  disableAnimations = false 
+export const DecisionStatsCards: React.FC<DecisionStatsCardsProps> = ({
+  stats,
+  loading = false,
+  disableAnimations = false
 }) => {
   if (loading || !stats) {
     return (

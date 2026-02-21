@@ -18,11 +18,6 @@ export const signup = (data: {
   return api.post("/api/auth/signup", data).then(r => {
     console.log('✅ AuthService - Signup response:', r.data);
     return r.data;
-  }).catch(err => {
-    console.error('❌ AuthService - Signup error:', err.response?.data || err.message);
-    // Extract error message from response
-    const errorMessage = err.response?.data?.message || err.response?.data || err.message || 'Signup failed';
-    throw new Error(errorMessage);
   });
 };
 
@@ -66,7 +61,7 @@ export const logout = () => api.post("/api/auth/logout").then(r => r.data);
 export const getMe = () => api.get("/api/auth/me").then(r => r.data);
 
 // Get Public Profile
-export const getPublicProfile = (userId: string) => 
+export const getPublicProfile = (userId: string) =>
   api.get(`/api/auth/profile/${userId}`).then(r => r.data);
 
 // Update Profile
@@ -162,7 +157,7 @@ api.interceptors.request.use(
     // Don't add token for signup/login/verify routes
     const authRoutes = ['/api/auth/signup', '/api/auth/login', '/api/auth/verify-email', '/api/auth/forgot-password', '/api/auth/reset-password'];
     const isAuthRoute = authRoutes.some(route => config.url?.includes(route));
-    
+
     if (!isAuthRoute) {
       const token = localStorage.getItem("accessToken");
       if (token) {
@@ -174,7 +169,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for auto token refresh
+// Response interceptor for auto token refresh & error formatting
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -205,7 +200,9 @@ api.interceptors.response.use(
       }
     }
 
-    return Promise.reject(error);
+    // Format all other errors into a nice JS Error with the backend custom message
+    const errorMessage = error.response?.data?.message || error.response?.data || error.message || 'API request failed';
+    return Promise.reject(new Error(errorMessage));
   }
 );
 
@@ -287,18 +284,18 @@ export default {
   resendOTP,
   refreshToken,
   logout,
-  
+
   // Profile Management
   getMe,
   getPublicProfile,
   updateProfile,
   changePassword,
   deleteAccount,
-  
+
   // Phone Verification
   verifyPhone,
   sendPhoneOTP,
-  
+
   // Utilities
   setAuthToken,
   removeAuthToken,

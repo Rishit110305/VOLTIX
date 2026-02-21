@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
+import { connectSocket } from '@/app/config/socket';
 
 export const useVoltixData = () => {
     const [liveState, setLiveState] = useState({
@@ -10,10 +10,14 @@ export const useVoltixData = () => {
     });
 
     useEffect(() => {
-        const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6000';
-        const socket = io(BACKEND_URL);
-        socket.on("station_state_update", (data) => setLiveState(data));
-        return () => { socket.disconnect(); };
+        const socket = connectSocket();
+
+        const handleStateUpdate = (data: any) => setLiveState(data);
+        socket.on("station_state_update", handleStateUpdate);
+
+        return () => {
+            socket.off("station_state_update", handleStateUpdate);
+        };
     }, []);
 
     return liveState;

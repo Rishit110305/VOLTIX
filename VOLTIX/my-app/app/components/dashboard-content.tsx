@@ -83,33 +83,33 @@ const createCustomIcon = (status: string) => {
   if (!L) return null;
 
   const iconMap: Record<string, { emoji: string; bg: string; border: string }> =
-    {
-      operational: {
-        emoji: "⚡",
-        bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-        border: "#10b981",
-      },
-      busy: {
-        emoji: "🔋",
-        bg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-        border: "#f59e0b",
-      },
-      maintenance: {
-        emoji: "🔧",
-        bg: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-        border: "#3b82f6",
-      },
-      error: {
-        emoji: "⚠️",
-        bg: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-        border: "#ef4444",
-      },
-      offline: {
-        emoji: "❌",
-        bg: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
-        border: "#6b7280",
-      },
-    };
+  {
+    operational: {
+      emoji: "⚡",
+      bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+      border: "#10b981",
+    },
+    busy: {
+      emoji: "🔋",
+      bg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+      border: "#f59e0b",
+    },
+    maintenance: {
+      emoji: "🔧",
+      bg: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+      border: "#3b82f6",
+    },
+    error: {
+      emoji: "⚠️",
+      bg: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+      border: "#ef4444",
+    },
+    offline: {
+      emoji: "❌",
+      bg: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
+      border: "#6b7280",
+    },
+  };
 
   const config = iconMap[status] || iconMap.operational;
 
@@ -303,13 +303,13 @@ export function HomeContent() {
     // FIX 2: Added proper error catching and response ok checks
     const fetchStations = async () => {
       try {
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:6000"}/api/stations`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5005"}/api/stations`;
         const response = await fetch(apiUrl);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
 
         if (data.success && data.data.stations) {
@@ -327,6 +327,50 @@ export function HomeContent() {
     fetchStations();
   }, []);
 
+  // Fetch admin overrides and merge into stations
+  useEffect(() => {
+    const fetchAdminOverrides = async () => {
+      try {
+        const res = await fetch("/api/stations/admin-status");
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.success && json.data) {
+          const overrides = json.data;
+
+          setStations(prev => prev.map(s => {
+            const ov = overrides[s.id];
+            if (!ov) return s;
+            return {
+              ...s,
+              status: ov.isActive ? (s.status === 'offline' || s.status === 'error' ? 'operational' : s.status) : 'offline',
+              health: { ...s.health, batteryLevel: ov.batteryPercentage },
+              demand: { ...s.demand, queueLength: ov.queueCount },
+              inventory: { ...s.inventory, chargedBatteries: ov.batteriesAvailable }
+            };
+          }));
+
+          setSelectedStation(prev => {
+            if (!prev) return prev;
+            const ov = overrides[prev.id];
+            if (!ov) return prev;
+            return {
+              ...prev,
+              status: ov.isActive ? (prev.status === 'offline' || prev.status === 'error' ? 'operational' : prev.status) : 'offline',
+              health: { ...prev.health, batteryLevel: ov.batteryPercentage },
+              demand: { ...prev.demand, queueLength: ov.queueCount },
+              inventory: { ...prev.inventory, chargedBatteries: ov.batteriesAvailable }
+            };
+          });
+        }
+      } catch (err) { }
+    };
+
+    // Initial fetch
+    setTimeout(fetchAdminOverrides, 1500);
+    const interval = setInterval(fetchAdminOverrides, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Socket connection for real-time updates
   useEffect(() => {
     const socket = connectSocket();
@@ -336,17 +380,16 @@ export function HomeContent() {
     });
 
     // Listen for stations list updates
-    socket.on(
-      "stations-list-update",
-      (data: { stations: Station[]; timestamp: string }) => {
-        if (data.stations) {
-          setStations(data.stations);
-        }
-      },
-    );
+    const handleStationsListUpdate = (data: { stations: Station[]; timestamp: string }) => {
+      if (data.stations) {
+        setStations(data.stations);
+      }
+    };
+
+    socket.on("stations-list-update", handleStationsListUpdate);
 
     // Listen for individual station metric updates
-    socket.on("station-metrics-update", (data: any) => {
+    const handleStationMetricsUpdate = (data: any) => {
       setStations((prev) =>
         prev.map((s) => {
           if (s.id === data.stationId) {
@@ -367,21 +410,23 @@ export function HomeContent() {
         setSelectedStation((prev) =>
           prev
             ? {
-                ...prev,
-                status: data.status,
-                health: data.health,
-                demand: data.demand,
-                inventory: data.inventory,
-                errors: data.errors,
-              }
+              ...prev,
+              status: data.status,
+              health: data.health,
+              demand: data.demand,
+              inventory: data.inventory,
+              errors: data.errors,
+            }
             : null,
         );
       }
-    });
+    };
+
+    socket.on("station-metrics-update", handleStationMetricsUpdate);
 
     return () => {
-      socket.off("stations-list-update");
-      socket.off("station-metrics-update");
+      socket.off("stations-list-update", handleStationsListUpdate);
+      socket.off("station-metrics-update", handleStationMetricsUpdate);
     };
   }, [selectedStation]);
 
@@ -644,8 +689,8 @@ export function HomeContent() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {selectedStation &&
-            selectedStation.latitude &&
-            selectedStation.longitude ? (
+              selectedStation.latitude &&
+              selectedStation.longitude ? (
               <MapController
                 center={[selectedStation.latitude, selectedStation.longitude]}
               />
@@ -855,11 +900,10 @@ export function HomeContent() {
                   transition={{ duration: 0.2 }}
                 >
                   <Card
-                    className={`p-4 cursor-pointer transition-all duration-200 hover:shadow-md rounded-2xl border bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm ${
-                      selectedStation?.id === station.id
-                        ? "border-primary ring-2 ring-primary/20 bg-white dark:bg-slate-800"
-                        : "border-border/30 hover:border-border/50"
-                    }`}
+                    className={`p-4 cursor-pointer transition-all duration-200 hover:shadow-md rounded-2xl border bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm ${selectedStation?.id === station.id
+                      ? "border-primary ring-2 ring-primary/20 bg-white dark:bg-slate-800"
+                      : "border-border/30 hover:border-border/50"
+                      }`}
                     onClick={() => {
                       setSelectedStation(station);
                       handleStationClick(station);
@@ -1009,21 +1053,21 @@ export function HomeContent() {
                           </p>
                           {(instruction.distance > 0 ||
                             instruction.time > 0) && (
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              {instruction.distance > 0 && (
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  {formatDistance(instruction.distance)}
-                                </span>
-                              )}
-                              {instruction.time > 0 && (
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {formatDuration(instruction.time)}
-                                </span>
-                              )}
-                            </div>
-                          )}
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                {instruction.distance > 0 && (
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    {formatDistance(instruction.distance)}
+                                  </span>
+                                )}
+                                {instruction.time > 0 && (
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {formatDuration(instruction.time)}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                         </div>
                       </div>
                     </motion.div>

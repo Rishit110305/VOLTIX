@@ -16,7 +16,8 @@ export const initSocket = (httpServer) => {
       credentials: true,
       methods: ["GET", "POST"],
     },
-    transports: ["websocket", "polling"],
+    // Prevent Engine.IO from destroying non-socket.io upgrade requests (like /ocpp)
+    destroyUpgrade: false,
   });
 
   /* auth middleware */
@@ -49,11 +50,11 @@ export const initSocket = (httpServer) => {
     if (socket.userId) {
       addUser(socket.userId, socket.id);
       socket.join(socket.userId.toString());
-      
+
       // All users join general notification rooms
       socket.join('general_users');
       socket.join('agent:traffic'); // All users get traffic notifications (incentives)
-      
+
       console.log(`User ${socket.userId} joined general rooms`);
     } else {
       console.warn("Unauthenticated socket:", socket.id);

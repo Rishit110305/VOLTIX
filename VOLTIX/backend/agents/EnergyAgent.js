@@ -4,7 +4,7 @@ import mlService from '../services/mlService.js';
 class EnergyAgent extends BaseAgent {
   constructor() {
     super('EnergyAgent');
-    
+
     // Energy-specific configuration
     this.config = {
       ...this.config,
@@ -14,7 +14,7 @@ class EnergyAgent extends BaseAgent {
       maxTradeAmount: 10000, // Maximum trade value in rupees
       profitThreshold: 0.05 // Minimum 5% profit margin
     };
-    
+
     // Energy market thresholds
     this.thresholds = {
       price: {
@@ -44,16 +44,16 @@ class EnergyAgent extends BaseAgent {
     try {
       const data = eventData.data;
       const opportunities = [];
-      
+
       // Check energy price opportunities
       const currentPrice = data.currentEnergyPrice || data.gridData?.price || 8;
-      
+
       if (currentPrice <= this.thresholds.price.low) {
         opportunities.push(`Low energy price: ₹${currentPrice}/kWh - buying opportunity`);
       } else if (currentPrice >= this.thresholds.price.high) {
         opportunities.push(`High energy price: ₹${currentPrice}/kWh - selling opportunity`);
       }
-      
+
       // Check demand patterns
       const demandLevel = data.demandLevel || this.calculateDemandLevel(data);
       if (demandLevel >= this.thresholds.demand.peak) {
@@ -61,7 +61,7 @@ class EnergyAgent extends BaseAgent {
       } else if (demandLevel <= this.thresholds.demand.low) {
         opportunities.push(`Low demand: ${(demandLevel * 100).toFixed(1)}% - excess capacity available`);
       }
-      
+
       // Check storage levels
       const storageLevel = data.batteryLevel || data.storageLevel || 0.5;
       if (storageLevel <= this.thresholds.storage.low / 100) {
@@ -69,21 +69,21 @@ class EnergyAgent extends BaseAgent {
       } else if (storageLevel >= this.thresholds.storage.full / 100) {
         opportunities.push(`High storage: ${(storageLevel * 100).toFixed(1)}% - selling opportunity`);
       }
-      
+
       // Check grid stability
       if (data.gridData) {
         const grid = data.gridData;
-        if (grid.frequency < this.thresholds.gridStability.frequency.min || 
-            grid.frequency > this.thresholds.gridStability.frequency.max) {
+        if (grid.frequency < this.thresholds.gridStability.frequency.min ||
+          grid.frequency > this.thresholds.gridStability.frequency.max) {
           opportunities.push(`Grid frequency instability: ${grid.frequency}Hz`);
         }
-        
-        if (grid.voltage < this.thresholds.gridStability.voltage.min || 
-            grid.voltage > this.thresholds.gridStability.voltage.max) {
+
+        if (grid.voltage < this.thresholds.gridStability.voltage.min ||
+          grid.voltage > this.thresholds.gridStability.voltage.max) {
           opportunities.push(`Grid voltage instability: ${grid.voltage}V`);
         }
       }
-      
+
       // Check renewable generation
       if (data.renewableGeneration) {
         const renewable = data.renewableGeneration;
@@ -94,7 +94,7 @@ class EnergyAgent extends BaseAgent {
           opportunities.push(`High wind generation: ${renewable.wind}kW - excess available`);
         }
       }
-      
+
       if (opportunities.length > 0) {
         return {
           shouldProcess: true,
@@ -109,12 +109,12 @@ class EnergyAgent extends BaseAgent {
           }
         };
       }
-      
+
       return {
         shouldProcess: false,
         reason: 'No significant energy opportunities detected'
       };
-      
+
     } catch (error) {
       console.error(`[EnergyAgent] Detection error:`, error);
       return {
@@ -131,11 +131,11 @@ class EnergyAgent extends BaseAgent {
       const demandLevel = context.demandLevel;
       const storageLevel = context.storageLevel;
       const opportunities = context.opportunities;
-      
+
       // Use ML service for energy price prediction
       let mlPrediction = null;
       try {
-        mlPrediction = await mlService.predictEnergyPrice(eventData.stationId, {
+        mlPrediction = await mlService.predictEnergyPrices({
           currentPrice,
           demandLevel,
           storageLevel,
@@ -147,7 +147,7 @@ class EnergyAgent extends BaseAgent {
       } catch (mlError) {
         console.warn(`[EnergyAgent] ML prediction failed:`, mlError.message);
       }
-      
+
       let action = 'monitor';
       let confidence = 0.7;
       let riskScore = 0.3;
@@ -158,15 +158,15 @@ class EnergyAgent extends BaseAgent {
         userSatisfaction: 0.8,
         riskScore: 0.3
       };
-      
+
       // Low price + low storage = BUY opportunity
       if (currentPrice <= this.thresholds.price.low && storageLevel < 0.6) {
         action = 'buy_energy';
         confidence = 0.85;
         riskScore = 0.2;
-        
+
         const buyAmount = this.calculateOptimalBuyAmount(currentPrice, storageLevel, demandLevel);
-        
+
         impact = {
           costImpact: -buyAmount * currentPrice,
           revenueImpact: buyAmount * (currentPrice * 1.3), // Expected 30% profit
@@ -182,9 +182,9 @@ class EnergyAgent extends BaseAgent {
         action = 'sell_energy';
         confidence = 0.8;
         riskScore = 0.3;
-        
+
         const sellAmount = this.calculateOptimalSellAmount(currentPrice, storageLevel, demandLevel);
-        
+
         impact = {
           costImpact: 0,
           revenueImpact: sellAmount * currentPrice,
@@ -200,9 +200,9 @@ class EnergyAgent extends BaseAgent {
         action = 'implement_surge_pricing';
         confidence = 0.75;
         riskScore = 0.4;
-        
+
         const surgeMultiplier = 1.5; // 50% surge
-        
+
         impact = {
           costImpact: 0,
           revenueImpact: 500, // Estimated additional revenue
@@ -218,7 +218,7 @@ class EnergyAgent extends BaseAgent {
         action = 'provide_grid_support';
         confidence = 0.8;
         riskScore = 0.5;
-        
+
         impact = {
           costImpact: -200, // Cost of providing support
           revenueImpact: 800, // Grid support payments
@@ -233,7 +233,7 @@ class EnergyAgent extends BaseAgent {
         action = 'optimize_renewable';
         confidence = 0.75;
         riskScore = 0.25;
-        
+
         impact = {
           costImpact: -100,
           revenueImpact: 400,
@@ -243,12 +243,12 @@ class EnergyAgent extends BaseAgent {
           renewableUtilization: 0.95
         };
       }
-      
+
       // Incorporate ML prediction
       if (mlPrediction?.success) {
         const mlData = mlPrediction.prediction;
         confidence = Math.min(confidence + 0.1, 0.95);
-        
+
         // Adjust strategy based on price prediction
         if (mlData.predicted_price > currentPrice * 1.2 && action === 'monitor') {
           action = 'buy_energy';
@@ -258,7 +258,7 @@ class EnergyAgent extends BaseAgent {
           riskScore = 0.3;
         }
       }
-      
+
       return {
         success: true,
         action,
@@ -270,7 +270,7 @@ class EnergyAgent extends BaseAgent {
         priority: currentPrice >= this.thresholds.price.critical ? 'urgent' : 'medium',
         marketConditions: context.marketConditions
       };
-      
+
     } catch (error) {
       console.error(`[EnergyAgent] Decision error:`, error);
       return {
@@ -286,9 +286,9 @@ class EnergyAgent extends BaseAgent {
       const stationId = eventData.stationId;
       const action = decision.action;
       const autonomyLevel = decision.autonomyLevel;
-      
+
       console.log(`[EnergyAgent] Executing ${action} on ${stationId} (Autonomy Level: ${autonomyLevel})`);
-      
+
       let result = {
         success: true,
         message: '',
@@ -297,49 +297,49 @@ class EnergyAgent extends BaseAgent {
         accuracy: 1.0,
         autonomyLevel
       };
-      
+
       const startTime = Date.now();
-      
+
       switch (action) {
         case 'buy_energy':
           // Advanced energy purchase with market timing
           await this.simulateDelay(3000);
           result = await this.executeEnergyPurchase(decision, eventData);
           break;
-          
+
         case 'sell_energy':
           // Energy arbitrage and grid-to-vehicle sales
           await this.simulateDelay(2500);
           result = await this.executeEnergySale(decision, eventData);
           break;
-          
+
         case 'implement_surge_pricing':
           // Dynamic pricing with demand elasticity
           await this.simulateDelay(1000);
           result = await this.executeSurgePricing(decision, eventData);
           break;
-          
+
         case 'provide_grid_support':
           // Grid stabilization services
           await this.simulateDelay(4000);
           result = await this.executeGridSupport(decision, eventData);
           break;
-          
+
         case 'optimize_renewable':
           // Renewable energy optimization
           await this.simulateDelay(2000);
           result = await this.executeRenewableOptimization(decision, eventData);
           break;
-          
+
         default:
           result.message = `Monitoring energy market for ${stationId} - no action required`;
           result.impact = { monitoringActive: true };
       }
-      
+
       result.responseTime = Date.now() - startTime;
-      
+
       return result;
-      
+
     } catch (error) {
       console.error(`[EnergyAgent] Action error:`, error);
       return {
@@ -354,7 +354,7 @@ class EnergyAgent extends BaseAgent {
   async executeEnergyPurchase(decision, eventData) {
     const buyAmount = decision.impact.energyAmount || 100;
     const marketPrice = decision.impact.costImpact ? Math.abs(decision.impact.costImpact) / buyAmount : 8;
-    
+
     // Simulate market order execution
     const marketOrder = {
       type: 'BUY',
@@ -363,12 +363,12 @@ class EnergyAgent extends BaseAgent {
       timestamp: new Date().toISOString(),
       stationId: eventData.stationId
     };
-    
+
     // Calculate slippage and execution details
     const slippage = Math.random() * 0.05; // 0-5% slippage
     const actualPrice = marketPrice * (1 + slippage);
     const totalCost = buyAmount * actualPrice;
-    
+
     return {
       success: true,
       message: `Energy purchase executed: ${buyAmount}kWh at ₹${actualPrice.toFixed(2)}/kWh`,
@@ -392,7 +392,7 @@ class EnergyAgent extends BaseAgent {
   async executeEnergySale(decision, eventData) {
     const sellAmount = decision.impact.energyAmount || 80;
     const marketPrice = decision.impact.revenueImpact ? decision.impact.revenueImpact / sellAmount : 12;
-    
+
     // Simulate energy sale with grid-to-vehicle capability
     const saleOrder = {
       type: 'SELL',
@@ -401,12 +401,12 @@ class EnergyAgent extends BaseAgent {
       timestamp: new Date().toISOString(),
       stationId: eventData.stationId
     };
-    
+
     // Calculate premium for grid services
     const gridServicePremium = 0.15; // 15% premium for grid services
     const actualPrice = marketPrice * (1 + gridServicePremium);
     const totalRevenue = sellAmount * actualPrice;
-    
+
     return {
       success: true,
       message: `Energy sale executed: ${sellAmount}kWh at ₹${actualPrice.toFixed(2)}/kWh (includes grid service premium)`,
@@ -435,7 +435,7 @@ class EnergyAgent extends BaseAgent {
   async executeSurgePricing(decision, eventData) {
     const surgeMultiplier = decision.impact.surgeMultiplier || 1.5;
     const demandReduction = decision.impact.expectedDemandReduction || 0.2;
-    
+
     // Implement dynamic pricing with demand elasticity
     const pricingStrategy = {
       basePrice: 8,
@@ -444,7 +444,7 @@ class EnergyAgent extends BaseAgent {
       elasticity: -0.5, // Demand elasticity coefficient
       expectedDemandChange: demandReduction
     };
-    
+
     return {
       success: true,
       message: `Surge pricing activated: ${((surgeMultiplier - 1) * 100).toFixed(0)}% increase with demand elasticity modeling`,
@@ -473,7 +473,7 @@ class EnergyAgent extends BaseAgent {
   async executeGridSupport(decision, eventData) {
     const supportType = decision.impact.gridSupportType || 'frequency_regulation';
     const supportDuration = '1 hour';
-    
+
     // Grid support service execution
     const gridService = {
       type: supportType,
@@ -482,7 +482,7 @@ class EnergyAgent extends BaseAgent {
       compensation: 800, // ₹800 per hour
       stabilityImprovement: 0.15
     };
-    
+
     return {
       success: true,
       message: `Grid support service activated: ${supportType} for ${supportDuration}`,
@@ -515,7 +515,7 @@ class EnergyAgent extends BaseAgent {
 
   async executeRenewableOptimization(decision, eventData) {
     const utilization = decision.impact.renewableUtilization || 0.9;
-    
+
     // Renewable energy optimization execution
     const optimization = {
       solarUtilization: utilization,
@@ -524,7 +524,7 @@ class EnergyAgent extends BaseAgent {
       excessSold: 30,
       carbonOffset: 25
     };
-    
+
     return {
       success: true,
       message: `Renewable optimization executed: ${(utilization * 100).toFixed(1)}% utilization achieved`,
@@ -563,7 +563,7 @@ class EnergyAgent extends BaseAgent {
   calculateArbitrageOpportunity(currentPrice) {
     const averagePrice = 8;
     const opportunity = (currentPrice - averagePrice) / averagePrice;
-    
+
     return {
       percentage: (opportunity * 100).toFixed(2) + '%',
       profitable: opportunity < -0.1, // Profitable if 10% below average
@@ -574,7 +574,7 @@ class EnergyAgent extends BaseAgent {
   calculateProfitMargin(sellPrice) {
     const averageCost = 6; // Average cost of energy
     const margin = (sellPrice - averageCost) / sellPrice;
-    
+
     return {
       percentage: (margin * 100).toFixed(2) + '%',
       profitPerKWh: sellPrice - averageCost,
@@ -587,12 +587,12 @@ class EnergyAgent extends BaseAgent {
     try {
       // In a real system, this would check actual energy transactions and grid data
       // For now, we'll simulate verification based on action type
-      
+
       const action = actionResult.message;
       let success = true;
       let reason = 'Energy action completed successfully';
       let effectivenessScore = 0.85;
-      
+
       // Simulate different success rates for different actions
       if (action.includes('purchase')) {
         // Energy purchases usually succeed but may have price slippage
@@ -611,14 +611,14 @@ class EnergyAgent extends BaseAgent {
         effectivenessScore = Math.random() * 0.1 + 0.9; // 90-100%
         reason = `Grid support provided successfully - stability improved`;
       }
-      
+
       // Small chance of failure for any action
       if (Math.random() < 0.03) {
         success = false;
         reason = 'Energy action failed - market conditions changed';
         effectivenessScore = 0.1;
       }
-      
+
       return {
         success,
         reason,
@@ -629,7 +629,7 @@ class EnergyAgent extends BaseAgent {
           marketEfficiency: effectivenessScore
         }
       };
-      
+
     } catch (error) {
       console.error(`[EnergyAgent] Verification error:`, error);
       return {
@@ -645,18 +645,18 @@ class EnergyAgent extends BaseAgent {
     const queueLength = data.queueLength || 0;
     const capacity = data.capacity || 10;
     const activeUsers = data.activeUsers || 0;
-    
+
     return Math.min((queueLength + activeUsers) / capacity, 1.0);
   }
 
   assessGridStability(gridData) {
     if (!gridData) return 'unknown';
-    
-    const freqStable = gridData.frequency >= this.thresholds.gridStability.frequency.min && 
-                      gridData.frequency <= this.thresholds.gridStability.frequency.max;
-    const voltStable = gridData.voltage >= this.thresholds.gridStability.voltage.min && 
-                      gridData.voltage <= this.thresholds.gridStability.voltage.max;
-    
+
+    const freqStable = gridData.frequency >= this.thresholds.gridStability.frequency.min &&
+      gridData.frequency <= this.thresholds.gridStability.frequency.max;
+    const voltStable = gridData.voltage >= this.thresholds.gridStability.voltage.min &&
+      gridData.voltage <= this.thresholds.gridStability.voltage.max;
+
     if (freqStable && voltStable) return 'stable';
     if (!freqStable || !voltStable) return 'unstable';
     return 'critical';
@@ -665,7 +665,7 @@ class EnergyAgent extends BaseAgent {
   assessMarketConditions(data) {
     const price = data.currentEnergyPrice || 8;
     const demand = this.calculateDemandLevel(data);
-    
+
     if (price <= this.thresholds.price.low && demand <= this.thresholds.demand.low) {
       return 'buyer_market';
     } else if (price >= this.thresholds.price.high && demand >= this.thresholds.demand.high) {
@@ -683,7 +683,7 @@ class EnergyAgent extends BaseAgent {
     const maxAmount = maxBudget / price;
     const storageCapacity = (1 - storageLevel) * 200; // Assume 200kWh max storage
     const demandFactor = Math.max(demandLevel, 0.3); // At least 30% of capacity
-    
+
     return Math.min(maxAmount, storageCapacity * demandFactor);
   }
 
@@ -693,7 +693,7 @@ class EnergyAgent extends BaseAgent {
     const reserveEnergy = 40; // Keep 40kWh reserve
     const sellableEnergy = Math.max(0, availableEnergy - reserveEnergy);
     const demandFactor = Math.min(demandLevel * 1.5, 1.0); // Sell more during high demand
-    
+
     return sellableEnergy * demandFactor;
   }
 

@@ -10,6 +10,8 @@ import { initSocket } from "./config/socket.js";
 import eventProcessor from "./services/eventProcessor.js";
 import blockchainService from "./services/blockchainService.js";
 import agentBus from "./eventBus/agentBus.js";
+import auditReportRoutes from "./routes/auditReport.js";
+import { WebSocketServer } from "ws";
 
 //routes
 import mlRoutes from "./routes/ml.js";
@@ -32,7 +34,7 @@ import adminAuthRoutes from "./routes/adminAuth.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 6000;
+const PORT = process.env.PORT || 5005;
 
 // CORS Configuration - Support multiple origins
 const allowedOrigins = [
@@ -145,6 +147,7 @@ app.use("/api/stations", stationsRoutes);
 app.use("/api/traffic", trafficRoutes);
 app.use("/api/demo", demoRoutes);
 app.use("/api/admin-auth", adminAuthRoutes);
+app.use("/api/audit-report", auditReportRoutes);
 
 // 404 handler for API routes
 app.use("/api", (req, res) => {
@@ -156,8 +159,13 @@ app.use("/api", (req, res) => {
 
 // Error handling middleware (MUST be after routes)
 app.use((err, req, res, next) => {
-  console.error("❌ Error caught by middleware:", err);
   const status = typeof err.status === "number" ? err.status : 500;
+
+  // Don't clutter the terminal with normal expected errors like 401 or 404
+  if (status >= 500) {
+    console.error(`❌ Server Error at ${req.originalUrl}:`, err);
+  }
+
   const message = err.message || "Internal Server Error";
   if (res.headersSent) return next(err);
   res.status(status).json({
@@ -174,6 +182,83 @@ const io = initSocket(server);
 
 // Make io available globally for notification dispatch
 app.set("io", io);
+
+// ==========================================
+// 🔌 NEXT-GEN: OCPP 1.6J SERVER INTEGRATION
+// ==========================================
+const wss = new WebSocketServer({ noServer: true });
+
+server.on('upgrade', (request, socket, head) => {
+  if (request.url.startsWith('/ocpp')) {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  }
+});
+
+wss.on('connection', (ws, req) => {
+  const stationId = req.url.split('/').pop();
+  console.log(`[OCPP] 🔌 Station connected via WebSocket: ${stationId}`);
+
+  ws.on('message', (message) => {
+    try {
+      const payload = JSON.parse(message);
+      // OCPP format: [MessageTypeId, UniqueId, Action, Payload]
+      const [typeId, uniqueId, action, data] = payload;
+
+      console.log(`[OCPP] 📩 Received ${action} from ${stationId}:`, data);
+
+      io.emit("ocpp-log", {
+        direction: "IN",
+        stationId: stationId,
+        action: action,
+        payload: data,
+        timestamp: new Date().toISOString()
+      });
+
+      // Send hardware telemetry directly to Admin Panel via Socket.IO
+      if (action === "MeterValues") {
+        io.emit("station-metrics-update", {
+          stationId: stationId,
+          status: "operational",
+          health: {
+            batteryLevel: data.meterValue[0].sampledValue[0].value,
+            temperature: "32°C",
+            voltage: "400V"
+          }
+        });
+      }
+
+      // Automatically construct OCPP CallResult acknowledgement
+      const response = [
+        3, // CallResult Type
+        uniqueId,
+        action === 'BootNotification' ? { status: 'Accepted', currentTime: new Date().toISOString(), interval: 300 } :
+          action === 'Heartbeat' ? { currentTime: new Date().toISOString() } :
+            action === 'StatusNotification' ? {} :
+              action === 'MeterValues' ? {} : {}
+      ];
+
+      ws.send(JSON.stringify(response));
+
+      io.emit("ocpp-log", {
+        direction: "OUT",
+        stationId: stationId,
+        action: "CallResult",
+        payload: response[2],
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (err) {
+      console.error("[OCPP] ❌ Invalid payload:", err);
+    }
+  });
+
+  ws.on('close', () => {
+    console.log(`[OCPP] 🔌 Station disconnected: ${stationId}`);
+  });
+});
+// ==========================================
 
 // Start Event Processor (THE BRAIN)
 eventProcessor.start(io);

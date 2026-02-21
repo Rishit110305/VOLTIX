@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStationData, setStationData, StationData, DEFAULT_DATA } from '@/lib/stationStore';
+import { connectSocket } from '@/app/config/socket';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ICONS — inline SVGs to avoid extra deps
@@ -58,6 +59,11 @@ const ActivityIcon = () => (
 const LogOutIcon = ({ size = 16 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+);
+const TerminalIcon = ({ size = 16 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" />
     </svg>
 );
 
@@ -257,7 +263,11 @@ export default function AdminPanelPage() {
     const [saving, setSaving] = useState(false);
     const [adminInfo, setAdminInfo] = useState<{ name: string; email: string } | null>(null);
     const [authChecked, setAuthChecked] = useState(false);
+    const [selectedStationId, setSelectedStationId] = useState("NEAR-001");
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [ocppLogs, setOcppLogs] = useState<any[]>([]);
+    const [hardwareConnected, setHardwareConnected] = useState(false);
+    const logsEndRef = useRef<HTMLDivElement>(null);
 
     // ── Auth guard — redirect to login if not authenticated ─────────────
     useEffect(() => {
@@ -294,21 +304,60 @@ export default function AdminPanelPage() {
 
     useEffect(() => {
         if (authChecked) {
-            getStationData().then(setForm);
+            getStationData(selectedStationId).then(setForm);
         }
-    }, [authChecked]);
+    }, [authChecked, selectedStationId]);
+
+    // ── Listen for OCPP logs & Hardware telemetry ─────────────────────────
+    useEffect(() => {
+        if (!authChecked) return;
+        const socket = connectSocket();
+
+        const handleOcppLog = (log: any) => {
+            if (log.stationId === selectedStationId) {
+                setHardwareConnected(true);
+                setOcppLogs((prev) => [...prev.slice(-49), log]);
+                setTimeout(() => {
+                    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+            }
+        };
+
+        const handleMetricsUpdate = (data: any) => {
+            if (data.stationId === selectedStationId && data.health && data.health.batteryLevel) {
+                setForm((prev) => ({
+                    ...prev,
+                    batteryPercentage: Math.round(Number(data.health.batteryLevel)),
+                }));
+            }
+        };
+
+        socket.on("ocpp-log", handleOcppLog);
+        socket.on("station-metrics-update", handleMetricsUpdate);
+
+        return () => {
+            socket.off("ocpp-log", handleOcppLog);
+            socket.off("station-metrics-update", handleMetricsUpdate);
+        };
+    }, [authChecked, selectedStationId]);
+
+    // Clear logs when station changes
+    useEffect(() => {
+        setOcppLogs([]);
+        setHardwareConnected(false);
+    }, [selectedStationId]);
 
     const handleSave = useCallback(async () => {
         setSaving(true);
         const now = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-        await setStationData({ ...form, lastUpdatedBy: `Admin · ${now}` });
+        await setStationData(selectedStationId, { ...form, lastUpdatedBy: `Admin · ${now}` });
         setSaving(false);
         setLastSavedAt(now);
         setSaved(true);
         setPulse(true);
         setTimeout(() => setSaved(false), 3000);
         setTimeout(() => setPulse(false), 600);
-    }, [form]);
+    }, [form, selectedStationId]);
 
     const handleLogout = () => {
         localStorage.removeItem('voltix_admin_token');
@@ -433,7 +482,17 @@ export default function AdminPanelPage() {
                                 <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Live</span>
                             </div>
                             <div className="w-1 h-1 rounded-full bg-neutral-700" />
-                            <span className="text-[10px] text-neutral-600">Station ID: VTX-001</span>
+                            <select
+                                value={selectedStationId}
+                                onChange={(e) => setSelectedStationId(e.target.value)}
+                                className="bg-[#111] border border-white/10 text-white rounded-md text-xs px-2 py-1 outline-none font-bold"
+                            >
+                                <option value="NEAR-001">Station NEAR-001</option>
+                                <option value="NEAR-002">Station NEAR-002</option>
+                                <option value="NEAR-003">Station NEAR-003</option>
+                                <option value="NEAR-004">Station NEAR-004</option>
+                                <option value="NEAR-005">Station NEAR-005</option>
+                            </select>
                         </div>
                         <h1 className="text-3xl font-bold tracking-tight text-white">Station Control Center</h1>
                         <p className="text-neutral-600 text-sm mt-1.5">
@@ -650,6 +709,43 @@ export default function AdminPanelPage() {
                             ))}
                         </div>
                     </ControlCard>
+                </div>
+
+                {/* ── LIVE OCPP TERMINAL (NEW) ─────────────────────────────────── */}
+                <div className="mb-6 rounded-3xl border border-white/[0.07] bg-[#0A0A0C] flex flex-col relative overflow-hidden admin-animate-slide-up shadow-[0_4px_40px_rgba(0,0,0,0.5)]" style={{ animationDelay: '400ms' }}>
+                    <div className="border-b border-white/[0.06] bg-white/[0.02] px-6 py-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <span className={`w-2 h-2 rounded-full ${hardwareConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                            <div className="flex items-center gap-2">
+                                <TerminalIcon size={16} />
+                                <span className="text-xs font-bold text-neutral-300 tracking-widest uppercase">Live Hardware Simulator Logs (OCPP 1.6J)</span>
+                            </div>
+                        </div>
+                        <div className="text-[10px] text-green-400 font-mono tracking-wider bg-green-500/10 px-2 py-1 rounded">wss://localhost:5005/ocpp/{selectedStationId}</div>
+                    </div>
+                    {/* Console body */}
+                    <div className="p-5 h-[280px] overflow-y-auto font-mono text-[11.5px] flex flex-col gap-2 relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                        <div className="text-neutral-500 mb-2">
+                            {'>'} Waiting for edge hardware websocket connection on port 5005...
+                        </div>
+                        {ocppLogs.map((log, i) => (
+                            <div key={i} className="flex gap-4 border-b border-white/[0.02] pb-2 last:border-0 hover:bg-white/[0.02] transition-colors rounded px-2 -mx-2">
+                                <span className="text-neutral-600 shrink-0 select-none">
+                                    {new Date(log.timestamp).toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })}
+                                </span>
+                                <span className={`shrink-0 font-bold ${log.direction === 'IN' ? 'text-blue-400' : 'text-purple-400'}`}>
+                                    [{log.direction}]
+                                </span>
+                                <span className={`shrink-0 ${log.action === 'Heartbeat' ? 'text-neutral-400' : log.action === 'MeterValues' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                    {log.action.padEnd(20)}
+                                </span>
+                                <span className="text-neutral-400 break-all opacity-80">
+                                    {JSON.stringify(log.payload)}
+                                </span>
+                            </div>
+                        ))}
+                        <div ref={logsEndRef} />
+                    </div>
                 </div>
 
                 {/* ── Publish button ──────────────────────────────────────────── */}

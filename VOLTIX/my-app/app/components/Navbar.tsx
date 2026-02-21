@@ -7,6 +7,8 @@ import {
   MenuItem,
 } from "@/componentsAcertinity/ui/navbar-menu";
 import { cn } from "@/lib/utils";
+import { useAuth } from "../hooks/useAuth";
+import { buttonVariants } from "@/components/ui/button";
 
 export function NavbarDemo() {
   return (
@@ -18,6 +20,7 @@ export function NavbarDemo() {
 
 function Navbar({ className }: { className?: string }) {
   const [active, setActive] = useState<string | null>(null);
+  const { isAuthenticated, logout } = useAuth();
 
   const features = [
     {
@@ -50,7 +53,39 @@ function Navbar({ className }: { className?: string }) {
     <div
       className={cn("fixed top-10 inset-x-0 max-w-4xl mx-auto z-50", className)}
     >
-      <Menu setActive={setActive}>
+      <Menu
+        setActive={setActive}
+        rightContent={
+          isAuthenticated ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="text-sm text-black dark:text-white hover:opacity-90"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={logout}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-sm text-black dark:text-white hover:opacity-90"
+              >
+                Sign In
+              </Link>
+              <Link href="/SignUp" className={buttonVariants({ variant: "outline" })}>
+                Sign Up
+              </Link>
+            </>
+          )
+        }
+      >
         <MenuItem setActive={setActive} active={active} item="Home">
           <div className="flex flex-col space-y-4 text-sm">
             <HoveredLink href="/">Home</HoveredLink>

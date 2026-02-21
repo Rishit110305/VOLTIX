@@ -6,14 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Search, 
-  MapPin, 
-  Battery, 
-  Zap, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
+import {
+  Search,
+  MapPin,
+  Battery,
+  Zap,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
   RefreshCw,
   TrendingUp,
   TrendingDown,
@@ -123,7 +123,7 @@ export default function StationsPage() {
       const response = await fetch('/api/stations', {
         credentials: 'include',
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.data) {
@@ -146,7 +146,7 @@ export default function StationsPage() {
       const response = await fetch('/api/stations/overview/system', {
         credentials: 'include',
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.data) {
@@ -161,10 +161,10 @@ export default function StationsPage() {
   // Socket connection and real-time updates
   useEffect(() => {
     const socket = connectSocket();
-    
+
     // Join system overview room for real-time updates
     socket.emit('join-system-overview');
-    
+
     // Listen for station list updates
     socket.on('stations-list-update', (data) => {
       if (data.stations) {
@@ -173,30 +173,30 @@ export default function StationsPage() {
         setIsConnected(true);
       }
     });
-    
+
     // Listen for system overview updates
     socket.on('system-overview-update', (data) => {
       if (data.overview) {
         setSystemOverview(data.overview);
       }
     });
-    
+
     // Listen for station alerts
     socket.on('station-alerts', (data) => {
       console.log('Station alerts received:', data.alerts);
     });
-    
+
     // Handle connection status
     socket.on('connect', () => {
       setIsConnected(true);
       console.log('Connected to station updates');
     });
-    
+
     socket.on('disconnect', () => {
       setIsConnected(false);
       console.log('Disconnected from station updates');
     });
-    
+
     return () => {
       socket.emit('leave-system-overview');
       socket.off('stations-list-update');
@@ -214,7 +214,7 @@ export default function StationsPage() {
       await Promise.all([fetchStations(), fetchSystemOverview()]);
       setLoading(false);
     };
-    
+
     loadData();
   }, []);
 
@@ -223,7 +223,7 @@ export default function StationsPage() {
     let filtered = stations;
 
     if (searchQuery) {
-      filtered = filtered.filter(station => 
+      filtered = filtered.filter(station =>
         station.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         station.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         station.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -305,7 +305,7 @@ export default function StationsPage() {
             Real-time monitoring and AI-powered management of EV charging stations
           </p>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm">
             {isConnected ? (
@@ -320,13 +320,13 @@ export default function StationsPage() {
               </>
             )}
           </div>
-          
+
           {lastUpdate && (
             <div className="text-sm text-gray-500">
               Last update: {lastUpdate.toLocaleTimeString()}
             </div>
           )}
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -357,27 +357,27 @@ export default function StationsPage() {
                 <div className="text-2xl font-bold text-blue-600">{systemOverview.totalStations}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Total Stations</div>
               </div>
-              
+
               <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">{systemOverview.statusBreakdown.operational}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Operational</div>
               </div>
-              
+
               <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                 <div className="text-2xl font-bold text-yellow-600">{systemOverview.statusBreakdown.busy}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Busy</div>
               </div>
-              
+
               <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 <div className="text-2xl font-bold text-red-600">{systemOverview.alerts.criticalErrors}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Critical Alerts</div>
               </div>
-              
+
               <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                 <div className="text-2xl font-bold text-purple-600">{systemOverview.avgMetrics.uptime.toFixed(1)}%</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Avg Uptime</div>
               </div>
-              
+
               <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 <div className="text-2xl font-bold text-orange-600">{systemOverview.avgMetrics.chargedRatio.toFixed(1)}%</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Battery Level</div>
@@ -397,7 +397,7 @@ export default function StationsPage() {
                 <Activity className="h-5 w-5" />
                 Stations ({filteredStations.length})
               </CardTitle>
-              
+
               {/* Filters */}
               <div className="space-y-3">
                 <div className="relative">
@@ -409,7 +409,7 @@ export default function StationsPage() {
                     className="pl-10"
                   />
                 </div>
-                
+
                 <div className="flex gap-2">
                   <Select value={filterCity} onValueChange={setFilterCity}>
                     <SelectTrigger className="flex-1">
@@ -422,7 +422,7 @@ export default function StationsPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  
+
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder="All Status" />
@@ -439,7 +439,7 @@ export default function StationsPage() {
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="p-0">
               <div className="h-[calc(100vh-600px)] overflow-y-auto">
                 {filteredStations.length === 0 ? (
@@ -456,11 +456,10 @@ export default function StationsPage() {
                       <div
                         key={station.id}
                         onClick={() => setSelectedStation(station)}
-                        className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                          selectedStation?.id === station.id 
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                        className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${selectedStation?.id === station.id
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
@@ -472,7 +471,7 @@ export default function StationsPage() {
                             <span className="ml-1 capitalize">{station.status}</span>
                           </Badge>
                         </div>
-                        
+
                         <div className="space-y-1 text-xs">
                           <div className="flex items-center justify-between">
                             <span className="text-gray-600 dark:text-gray-400">Queue:</span>
@@ -480,14 +479,14 @@ export default function StationsPage() {
                               {station.demand.queueLength} vehicles
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center justify-between">
                             <span className="text-gray-600 dark:text-gray-400">Batteries:</span>
                             <span className={`font-medium ${station.inventory.chargedRatio < 20 ? 'text-red-600' : 'text-green-600'}`}>
                               {station.inventory.chargedBatteries}/{station.inventory.maxCapacity}
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center justify-between">
                             <span className="text-gray-600 dark:text-gray-400">Uptime:</span>
                             <span className={`font-medium ${station.health.uptime < 90 ? 'text-red-600' : 'text-green-600'}`}>
@@ -495,7 +494,7 @@ export default function StationsPage() {
                             </span>
                           </div>
                         </div>
-                        
+
                         {station.inventory.predictedStockout && station.inventory.predictedStockout < 60 && (
                           <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-700 dark:text-red-400">
                             ⚠️ Stockout in {station.inventory.predictedStockout}min
@@ -513,7 +512,7 @@ export default function StationsPage() {
         {/* Right Panel - Station Details */}
         <div className="lg:col-span-2">
           {selectedStation ? (
-            <StationDetails station={selectedStation} />
+            <StationDetails station={selectedStation} onBack={() => setSelectedStation(null)} />
           ) : (
             <Card className="h-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-gray-200 dark:border-gray-700">
               <CardContent className="flex items-center justify-center h-full">

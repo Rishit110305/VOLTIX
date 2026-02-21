@@ -3,23 +3,35 @@ import stationDataService from '../services/stationDataService.js';
 
 const router = express.Router();
 
-// ─── Admin-set station overview (in-memory, swap for MongoDB later) ────────────
-let adminStationStatus = {
+// ─── Admin-set station overview (in-memory, per station ID) ────────────
+let adminStationStatuses = {};
+
+// Default fallback data for a station
+const getDefaultAdminStatus = () => ({
   batteryPercentage: 80,
   batteriesAvailable: 10,
   queueCount: 0,
   isActive: true,
   lastUpdatedBy: 'Not yet set by admin',
-};
-
-// GET  /api/stations/admin-status  → main site reads this
-router.get('/admin-status', (req, res) => {
-  res.json({ success: true, data: adminStationStatus });
 });
 
-// POST /api/stations/admin-status  → admin panel writes this
-router.post('/admin-status', (req, res) => {
+// GET  /api/stations/admin-status  → returns dictionary of all station overrides
+router.get('/admin-status', (req, res) => {
+  res.json({ success: true, data: adminStationStatuses });
+});
+
+// GET  /api/stations/admin-status/:id  → main site reads this
+router.get('/admin-status/:id', (req, res) => {
+  const stationId = req.params.id;
+  const status = adminStationStatuses[stationId] || getDefaultAdminStatus();
+  res.json({ success: true, data: status });
+});
+
+// POST /api/stations/admin-status/:id  → admin panel writes this
+router.post('/admin-status/:id', (req, res) => {
+  const stationId = req.params.id;
   const { batteryPercentage, batteriesAvailable, queueCount, isActive, lastUpdatedBy } = req.body;
+
   if (
     batteryPercentage === undefined ||
     batteriesAvailable === undefined ||
@@ -28,15 +40,17 @@ router.post('/admin-status', (req, res) => {
   ) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
-  adminStationStatus = {
+
+  adminStationStatuses[stationId] = {
     batteryPercentage: Number(batteryPercentage),
     batteriesAvailable: Number(batteriesAvailable),
     queueCount: Number(queueCount),
     isActive: Boolean(isActive),
     lastUpdatedBy: lastUpdatedBy || 'Admin',
   };
-  console.log('✅ Admin updated station status:', adminStationStatus);
-  res.json({ success: true, data: adminStationStatus });
+
+  console.log(`✅ Admin updated station status for ${stationId}:`, adminStationStatuses[stationId]);
+  res.json({ success: true, data: adminStationStatuses[stationId] });
 });
 // ─────────────────────────────────────────────────────────────────────────────
 

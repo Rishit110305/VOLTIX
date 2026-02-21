@@ -10,7 +10,7 @@ export const useStationStore = (): StationData => {
     const [data, setData] = useState<StationData>(DEFAULT_DATA);
 
     const refresh = async () => {
-        const latest = await getStationData();
+        const latest = await getStationData('ST001');
         setData(latest);
     };
 

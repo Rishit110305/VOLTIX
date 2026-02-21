@@ -18,7 +18,6 @@ import BatteryBay from "@/app/components/dashboard/BatteryBay";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import TrafficNotificationToast from "@/app/components/TrafficNotificationToast";
 import LiveAgentConsole from "@/app/components/live-agent-console-v2";
-import { StationStatusWidget } from "@/app/components/StationStatusWidget";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("home");
@@ -50,7 +49,6 @@ export default function Dashboard() {
           <DashboardHeader />
           <main className="flex-1 p-4 md:p-6">
             {/* ── Live station status set by admin panel ── */}
-            <StationStatusWidget />
             <Tabs
               defaultValue="home"
               value={activeTab}
@@ -76,12 +74,18 @@ export default function Dashboard() {
                   </TabsTrigger>
                 </TabsList>
                 <div className="hidden gap-2 md:flex">
-                  <Link href="/download">
-                    <Button className="rounded-2xl bg-green-500 hover:bg-green-600 text-white">
-                      <Download className="mr-2 h-4 w-4" />
-                      Download App
-                    </Button>
-                  </Link>
+                  <Button
+                    onClick={() =>
+                      window.open(
+                        "/api/audit-report",
+                        "_blank",
+                      )
+                    }
+                    className="rounded-2xl bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </Button>
                 </div>
               </div>
 

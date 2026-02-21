@@ -1,42 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import { connectSocket, getSocket } from "@/app/config/socket";
+import type { Socket } from "socket.io-client";
 
 export function useSocket() {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Initialize socket connection
-    const socketInstance = io(
-      process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
-        "http://localhost:5000",
-      {
-        transports: ["websocket", "polling"],
-      },
-    );
+    // Rely on the robust singleton socket instance
+    const socketInstance = connectSocket();
 
-    socketInstance.on("connect", () => {
-      console.log("Socket connected:", socketInstance.id);
-      setIsConnected(true);
-    });
+    const handleConnect = () => console.log("useSocket connected to single instance:", socketInstance.id);
+    const handleDisconnect = () => console.log("useSocket disconnected");
+    const handleConnectError = (error: any) => console.error("useSocket connection error:", error);
 
-    socketInstance.on("disconnect", () => {
-      console.log("Socket disconnected");
-      setIsConnected(false);
-    });
+    socketInstance.on("connect", handleConnect);
+    socketInstance.on("disconnect", handleDisconnect);
+    socketInstance.on("connect_error", handleConnectError);
 
-    socketInstance.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
-      setIsConnected(false);
-    });
+    setTimeout(() => {
+      setSocket(socketInstance);
+    }, 0);
 
-    setSocket(socketInstance);
-
-    // Cleanup on unmount
     return () => {
-      socketInstance.disconnect();
+      socketInstance.off("connect", handleConnect);
+      socketInstance.off("disconnect", handleDisconnect);
+      socketInstance.off("connect_error", handleConnectError);
+      // We don't disconnect the singleton on unmount!
     };
   }, []);
 
